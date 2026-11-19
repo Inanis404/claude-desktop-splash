@@ -2,7 +2,7 @@
 
 Plays a short animation over the Claude desktop window when you start it from a shortcut, then fades out to reveal Claude. With a short startup sound (add -NoSound to turn it off). Skip any time with Esc, Space, Enter or a click.
 
-> **Language note:** the animation's text is **Chinese (简体中文)**. **Windows only**; it needs Microsoft Edge and the Claude desktop app (Microsoft Store version). This is an unofficial personal project and is not affiliated with Anthropic.
+> **Language note:** the animation's text is **Chinese (简体中文)**. **Windows only**; it needs Microsoft Edge and the Claude desktop app (Microsoft Store version). This is an unofficial personal project and is not affiliated with Anthropic. An experimental macOS launcher is in `launcher-mac/` (see "macOS（实验性）" below).
 
 ## 截图 / Screenshots
 
@@ -204,6 +204,66 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\launcher\launch.ps1 -NoCla
    这几个文件都会在需要时重新生成：`config.json` 和 `claude.ico` 由 `make_shortcut.ps1` 生成，`last_rect.json` 和 `launcher.log` 由运行生成。删掉 `config.json` 后，`launch.ps1` 会退回到内置的默认应用 ID，所以如果你的 Claude 应用 ID 和默认值不同，需要重新运行 `make_shortcut.ps1`。
 
 未验证：PowerShell 每次运行时现场编译 C# 代码，可能在系统临时目录里留下临时文件，我没有检查过；如果在意，可以用 Windows 的"磁盘清理"清掉临时文件。
+
+## macOS（实验性）
+
+`launcher-mac/` 是 macOS 版的启动器，作用和 `launcher\launch.ps1` 相同：用无边框窗口盖在 Claude 的窗口上播放 `splash.html`，同时启动 Claude，播完淡出。动画本身（`splash.html`、`assets/`）两边共用，没有改动。这部分由社区贡献，测试情况见下文。
+
+### 要求
+
+- macOS 12 以上（只在 MacBook Air M4、macOS 27.0.1 上测过）
+- Xcode 命令行工具（提供 `swiftc`），没装过的话运行 `xcode-select --install`
+- Claude 桌面应用（Mac 版）
+
+### 安装和使用
+
+1. 下载或克隆这个仓库，放在固定的位置（生成的 App 记着仓库的路径）。
+2. 在终端里进入仓库文件夹，运行：
+
+```bash
+bash launcher-mac/make_app.sh --name "Claude 开屏启动" --applications
+```
+
+它会在 `~/Applications`（“应用程序”）里生成 `Claude 开屏启动.app`；不加 `--applications` 则生成在 `launcher-mac/` 里。用原来那套角色图加 `--art classic`，不要声音加 `--no-sound`。
+
+3. 以后用这个 App 打开 Claude。
+
+**第一次打开时**，如果仓库放在“桌面”“文稿”或“下载”里，macOS 会询问是否允许 App 访问这个文件夹。点“允许”，然后再打开一次（第一次不会播动画）。
+
+### 和 Windows 版的不同
+
+- **跳过**：点击、Esc、空格、回车都可以。播放期间这几个键被临时注册为全局快捷键（不需要“辅助功能”权限），所以 Claude 拿走焦点后按键也有效；动画结束就释放。
+- **做别的事就结束**：播放中点击动画以外的地方、切到别的程序或别的桌面（Space），动画立刻消失。macOS 点桌面会把窗口推开，不这样处理的话动画会和 Claude 的窗口错开。
+- **Claude 全屏时**：进入全屏时 macOS 会滑到单独的桌面，滑动过程中不显示其他程序的窗口，动画无法盖住。所以动画先盖满屏幕播放，接近结尾时才启动 Claude，让它滑入全屏的时刻正好落在动画结尾。启动到滑入所需的时间每次都会测量，用于下一次。
+
+### 日志和调试
+
+日志写在 `launcher-mac/launcher.log`（超过 100 KB 清空重写）。直接运行 App 里的程序时可以加这些参数：
+
+| 参数 | 作用 |
+|---|---|
+| `-noClaude YES` | 只播动画，不启动 Claude |
+| `-fullscreen YES` | 忽略 Claude 的窗口，盖住整个主屏幕 |
+| `-mute YES` | 不播放开屏音效 |
+| `-art classic` | 用原来的角色图 |
+
+例如只预览动画：
+
+```bash
+"launcher-mac/Claude 开屏启动.app/Contents/MacOS/ClaudeSplash" -noClaude YES
+```
+
+全屏时滑入的时机可以微调（单位秒，正数推后、负数提前）：`defaults write local.claude-desktop-splash lateOffset -float 0.2`
+
+### 测试情况
+
+在 MacBook Air M4、macOS 27.0.1 上实际运行过：窗口和全屏两种情况下的完整播放与 Esc 跳过、点击跳过、播放中点击桌面、快速连点两次、Claude 已在运行、Claude 关闭窗口后在后台运行。
+
+**未验证**：多显示器（Claude 在副屏全屏时，动画可能出现在主屏）、其他机型和 macOS 版本、全屏情况下的原版角色图（时间按 `splash.html` 的时间轴推算）。
+
+### 卸载
+
+删除生成的 App，再运行 `defaults delete local.claude-desktop-splash` 清除记住的窗口位置。
 
 ## 许可 / License
 

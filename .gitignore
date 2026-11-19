@@ -4,3 +4,5 @@ launcher/config.json
 launcher/claude.ico
 *.lnk
 launcher/edge-profile*/
+launcher-mac/launcher.log
+launcher-mac/*.app/
